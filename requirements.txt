@@ -20,3 +20,4 @@ flask
 sqlite3
 nltk
 PyFPDF
+fpdf
