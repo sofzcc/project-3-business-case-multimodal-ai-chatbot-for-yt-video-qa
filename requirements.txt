@@ -19,4 +19,4 @@ chromadb
 flask
 sqlite3
 nltk
-fpdf
+PyFPDF
