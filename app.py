@@ -52,6 +52,7 @@ LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
 LANGCHAIN_API_KEY = os.getenv('LANGCHAIN_API_KEY')
 LANGCHAIN_PROJECT="default"
 
+# Download and initialize all required models
 model = SentenceTransformerEmbeddings(model_name='paraphrase-MiniLM-L6-v2')
 summarization_model_name = "suriya7/bart-finetuned-text-summarization"
 summarization_model = AutoModelForSeq2SeqLM.from_pretrained(summarization_model_name)
@@ -60,6 +61,12 @@ summarization_tokenizer = AutoTokenizer.from_pretrained(summarization_model_name
 
 # Function to load the vector database
 def load_vectordb():
+    """
+    Load the vector database from Chroma.
+
+    Returns:
+        langchain_chroma (Chroma): The Chroma vector database.
+    """
     persistent_client = chromadb.PersistentClient("chromadb")
 
     langchain_chroma = Chroma(
@@ -77,6 +84,17 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def safe_execute(func, *args, **kwargs):
+    """
+    Execute a function safely, catching any exceptions and logging errors.
+
+    Args:
+        func (callable): The function to execute.
+        *args: Variable length argument list for the function.
+        **kwargs: Arbitrary keyword arguments for the function.
+
+    Returns:
+        The result of the function execution, or an error message if an exception occurs.
+    """
     try:
         return func(*args, **kwargs)
     except Exception as e:
@@ -90,12 +108,28 @@ llm = ChatOpenAI(temperature=0.6, model_name="gpt-3.5-turbo-16k")
 
 
 def count_tokens(text):
+    """
+    Count the number of tokens in a given text using NLTK's word tokenizer.
+
+    Args:
+        text (str): The input text.
+
+    Returns:
+        int: The number of tokens in the text.
+    """
     tokens = word_tokenize(text)
     return len(tokens)
 
-# Refined summarization function
 def text_summarize(text):
+    """
+    Summarize the input text using a MapReduce approach.
 
+    Args:
+        text (str): The input text to summarize.
+
+    Returns:
+        str: The summary of the input text.
+    """
     # Split the text into chunks
     text_splitter = CharacterTextSplitter(chunk_size=10000, chunk_overlap=200)
 
@@ -135,6 +169,12 @@ def text_summarize(text):
 
 # Function to add documents to the database
 def add_documents_to_db(pdf_file):
+    """
+    Add documents extracted from a PDF file to the vector database.
+
+    Args:
+        pdf_file (str): The path to the PDF file to process.
+    """
     try:
         texts = extract_text_from_pdf(pdf_file)
         cleaned_text = clean_text(texts)
@@ -165,13 +205,32 @@ def add_documents_to_db(pdf_file):
 
 
 def generate_valid_filename(query):
-    # Replace characters that are not allowed in filenames
+    """
+    Generate a valid filename by replacing invalid characters with underscores.
+
+    Args:
+        query (str): The input string to generate the filename from.
+
+    Returns:
+        str: The generated valid filename.
+    """
     valid_chars = '-_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
     filename = ''.join(c if c in valid_chars else '_' for c in query)
     return filename
 
 # Function to search and transcribe YouTube videos
 def search_and_transcribe_videos(query, max_results=20, min_valid_videos=4):
+    """
+    Search for YouTube videos and transcribe them.
+
+    Args:
+        query (str): The search query for YouTube videos.
+        max_results (int): The maximum number of results to fetch. Default is 20.
+        min_valid_videos (int): The minimum number of valid videos to transcribe. Default is 4.
+
+    Returns:
+        str: The path to the transcript file.
+    """
     valid_urls = []
     current_max_results = max_results
     transcription = ''
@@ -203,6 +262,15 @@ def search_and_transcribe_videos(query, max_results=20, min_valid_videos=4):
 
 # Function to create a PDF from a transcript
 def create_pdf(input_file):
+    """
+    Create a PDF file from a transcript file.
+
+    Args:
+        input_file (str): The path to the transcript file.
+
+    Returns:
+        str: The path to the created PDF file.
+    """
     pdf = FPDF()
     with open(input_file, 'r', encoding='utf-8') as f:
         text = f.read()
@@ -216,6 +284,15 @@ def create_pdf(input_file):
 
 # Function to extract text from a PDF
 def extract_text_from_pdf(pdf_path):
+    """
+    Extract text from a PDF file.
+    
+    Args:
+        pdf_path (str): The path to the PDF file.
+    
+    Returns:
+        str: The extracted text.
+    """
     reader = PdfReader(pdf_path)
     text = ""
     for page in reader.pages:
@@ -226,12 +303,33 @@ def extract_text_from_pdf(pdf_path):
 
 # Function to clean extracted text
 def clean_text(text):
+    """
+    Clean and preprocess the extracted text.
+    
+    Args:
+        text (str): The extracted text.
+    
+    Returns:
+        str: The cleaned text.
+    """
+
     text = text.replace('\xa0', ' ')
     text = re.sub(r'[^\x00-\x7F]+!?', ' ', text)
     return text
 
 # Function to split text into chunks
 def get_text_chunks(text):
+    """
+    Split the cleaned text into manageable chunks for further processing.
+    
+    Args:
+        text (str): The cleaned text.
+        chunk_size (int): The size of each text chunk.
+    
+    Returns:
+        list of Document: List of Document objects containing text chunks.
+    """
+
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
         chunk_overlap=200,
@@ -244,6 +342,16 @@ def get_text_chunks(text):
 
 # Function to process YouTube videos
 def load_video(url):
+    """
+    Retrieve the transcript of a YouTube video, save it to a text file, 
+    convert the text file to a PDF, and return the PDF filename.
+    
+    Args:
+        url (str): The URL of the YouTube video.
+    
+    Returns:
+        str: The filename of the generated PDF.
+    """
     video_id = url.split('v=')[-1]
     transcript = YouTubeTranscriptApi.get_transcript(video_id)
     transcript_text = ' '.join([t['text'] for t in transcript])
@@ -253,8 +361,18 @@ def load_video(url):
     pdf_filename = create_pdf(filename)
     return pdf_filename
 
-#Initialize the collection
+#Initialize the collection 
 def initialize_collection():
+    """
+    Initialize the knowledge base by searching and transcribing YouTube videos 
+    for a predefined set of queries, converting them to PDF, and adding them 
+    to the vector database.
+    
+    Returns:
+        bool: True if the initialization is successful.
+    """
+    # Update queries if you want the assistant to have a different knowledge base and uncomment initialize_collection() after this function
+    
     queries = [
         "Transfer Learning in Machine Learning",
         "Object Detection and Recognition in Computer Vision",
@@ -334,18 +452,49 @@ def initialize_collection():
 import tiktoken
 
 def update_conversation_summary(summarized_conversation, new_interaction):
+    """
+    Update the summary of a conversation by appending a new interaction.
     
+    Args:
+        summarized_conversation (str): The current summarized conversation.
+        new_interaction (dict): A dictionary containing 'question' and 'answer' keys.
+    
+    Returns:
+        str: The updated summary of the conversation.
+    """
+
     new_summary = f"{summarized_conversation}\n- Q: {new_interaction['question']}\n  A: {new_interaction['answer']}"
         
     return new_summary
 
 
 def is_long_task(task, max_tokens=1000):
+    """
+    Determine if a given task exceeds the specified token limit.
+    
+    Args:
+        task (str): The task to check.
+        max_tokens (int): The maximum number of tokens allowed.
+    
+    Returns:
+        bool: True if the task exceeds the token limit, False otherwise.
+    """
+
     encoding = tiktoken.encoding_for_model(llm)
     num_tokens = len(encoding.encode(task))
     return num_tokens > max_tokens
 
 def split_task(task):
+    """
+    Split a long task into smaller subtasks for easier processing.
+    
+    Args:
+        task (str): The task to split.
+    
+    Returns:
+        list of str: A list of subtasks.
+    """
+
     prompt = f"""
     The following task needs to be split into smaller subtasks:
     
@@ -360,6 +509,16 @@ def split_task(task):
     return subtasks
 
 def combine_results(results):
+    """
+    Combine the results from multiple subtasks into a single summary.
+    
+    Args:
+        results (list of str): The results from subtasks.
+    
+    Returns:
+        str: A concise summary of the combined results.
+    """
+
     combined = "Combined results from subtasks:\n\n"
     for i, result in enumerate(results, 1):
         combined += f"Subtask {i} result:\n{result}\n\n"
@@ -378,6 +537,17 @@ def combine_results(results):
 
 
 def process_user_input(user_input):
+    """
+    Process user input by determining if it's a long task. If so, split it into subtasks,
+    process each subtask, and combine the results. Otherwise, process the input directly.
+    
+    Args:
+        user_input (str): The user's input to process.
+    
+    Returns:
+        str: The result after processing the user input.
+    """
+
     if is_long_task(user_input):
         subtasks = split_task(user_input)
         results = []
@@ -388,18 +558,47 @@ def process_user_input(user_input):
     else:
         return run_agent(user_input)
 
+# Uncomment the line below if you want to re-initialize the collection or initialize it with different topics
 #initialize_collection()
 
 def create_qa_chain():
+    """
+    Create a question-answering chain using a retriever and a language model.
+    
+    Returns:
+        RetrievalQA: The question-answering chain instance.
+    """
+
     retriever = vector_db.as_retriever()
     qa_chain = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever)
     return qa_chain
 
 def combine_summaries(summaries):
+    """
+    Combine multiple summaries into a single summary.
+    
+    Args:
+        summaries (list of str): The list of summaries to combine.
+    
+    Returns:
+        str: The combined summary.
+    """
+
     combined_summary = " ".join(summaries)
     return combined_summary
 
 def split_text(text, max_length=1500):
+    """
+    Split a long text into smaller chunks, ensuring chunks do not exceed the specified length.
+    
+    Args:
+        text (str): The text to split.
+        max_length (int): The maximum length of each chunk.
+    
+    Returns:
+        list of str: A list of text chunks.
+    """
+
     chunks = []
     while len(text) > max_length:
         chunk = text[:max_length]
@@ -414,22 +613,32 @@ def split_text(text, max_length=1500):
     return chunks
 
 def process_large_text(transcript_text):
+    """
+    Process a large text by splitting it into chunks, summarizing each chunk, 
+    and then generating a final summary from the combined chunk summaries.
+    
+    Args:
+        transcript_text (str): The large text to process.
+    
+    Returns:
+        str: The final summary of the large text.
+    """
 
-    # Step 2: Split the cleaned text into manageable chunks
+    # Step 1: Split the cleaned text into manageable chunks
     chunks = split_text(transcript_text, max_length=1500)
 
-    # Step 3: Generate summaries for each chunk
+    # Step 2: Generate summaries for each chunk
     chunk_summaries = [text_summarize(chunk) for chunk in chunks]
 
-    # Step 4: Combine the chunk summaries
+    # Step 3: Combine the chunk summaries
     combined_summary = combine_summaries(chunk_summaries)
 
-    # Step 5: Generate the final summary from combined summaries
+    # Step 4: Generate the final summary from combined summaries
     final_summ = text_summarize(combined_summary)
 
     return final_summ
 
-# Initialize memory
+# Initialize memory with k=5, so the memory object will store the most recent 5 messages or interactions in the conversation
 memory = ConversationBufferWindowMemory(k=5)
 
 # Define agent tools
@@ -631,8 +840,7 @@ agent_executor = AgentExecutor(agent=agent, tools=tools,handle_parsing_errors=Tr
 
 
 
-import streamlit as st
-
+# Streamlit App Interface Design
 def main():
 
     # Initialize session state
