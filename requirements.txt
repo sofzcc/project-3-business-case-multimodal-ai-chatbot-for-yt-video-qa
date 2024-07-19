@@ -12,3 +12,10 @@ google-api-python-client
 youtube-transcript-api
 youtube-search
 pypdf
+langchain-openai
+langchain-community
+sentence-transformers
+chromadb
+flask
+sqlite3
+nltk
