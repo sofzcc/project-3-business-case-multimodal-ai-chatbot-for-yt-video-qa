@@ -90,7 +90,7 @@ pypdfium2==4.30.0
 PyPika==0.48.9
 python-dotenv
 sentence-transformers
-streamlit=
+streamlit
 tiktoken
 tokenizers
 torch
