@@ -1,0 +1,11 @@
+streamlit
+openai
+PyPDF2
+requests
+beautifulsoup4
+nltk
+numpy
+pandas
+torch
+transformers
+google-api-python-client
