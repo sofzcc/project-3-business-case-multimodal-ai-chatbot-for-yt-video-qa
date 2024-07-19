@@ -94,5 +94,5 @@ tiktoken
 tokenizers
 torch
 transformers
-youtube-search
+youtube_searchs
 youtube-transcript-api
