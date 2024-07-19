@@ -14,7 +14,7 @@ certifi==2024.7.4
 charset-normalizer==3.3.2
 Chroma==0.2.0
 chroma-hnswlib==0.7.5
-chromadb==0.5.4
+chromadb
 click==8.1.7
 colorama==0.4.6
 coloredlogs==15.0.1
