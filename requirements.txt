@@ -9,3 +9,5 @@ pandas
 torch
 transformers
 google-api-python-client
+youtube-transcript-api 0.6.2
+youtube-search
