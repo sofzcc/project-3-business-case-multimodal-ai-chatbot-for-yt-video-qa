@@ -1,4 +1,4 @@
-
+pysqlite3-binary
 chromadb
 distro==1.9.0
 dnspython==2.6.1
