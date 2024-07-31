@@ -30,6 +30,8 @@ import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import nltk
 from nltk.tokenize import word_tokenize
+import pytube
+from moviepy.editor import *
 
 # Download necessary resources
 nltk.download('punkt')
@@ -218,6 +220,37 @@ def generate_valid_filename(query):
     filename = ''.join(c if c in valid_chars else '_' for c in query)
     return filename
 
+#################################################
+##              NEW FUNCTIONS                  ##
+#################################################
+import whisper
+import time
+from pytube import YouTube
+
+
+def download_video(url):
+    video = YouTube(url)
+    stream = video.streams.filter(file_extension='mp4')
+    stream.download()
+    return stream.default_filename
+
+
+def video_to_text(filename):
+    clip = VideoFileClip(filename)
+    audio_filename = filename[:-4] + ".mp3"
+    clip.audio.write_audiofile(audio_filename)
+    clip.close()
+    time.sleep(5)
+
+    model = whisper.load_model("base")
+    result = model.transcribe(audio_filename)
+
+    transcription = result["text"]
+
+    return transcription
+
+
+#################################################
 # Function to search and transcribe YouTube videos
 def search_and_transcribe_videos(query, max_results=20, min_valid_videos=4):
     """
@@ -673,10 +706,13 @@ def process_video(url):
     Returns:
         str: The summary of the video.
     """
-    video_id = url.split('v=')[-1]
-    transcript = YouTubeTranscriptApi.get_transcript(video_id)
-    transcript_text = ' '.join([t['text'] for t in transcript])
-    
+#    video_id = url.split('v=')[-1]
+#    transcript = YouTubeTranscriptApi.get_transcript(video_id)
+#    transcript_text = ' '.join([t['text'] for t in transcript])
+
+    video = download_video(url)
+    transcript_text = video_to_text(video)
+
     # Clean the transcript text
     cleaned_text = clean_text(transcript_text)
     if len(cleaned_text) > 15000:
