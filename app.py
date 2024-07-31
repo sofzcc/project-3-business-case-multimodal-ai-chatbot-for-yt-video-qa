@@ -59,6 +59,7 @@ model = SentenceTransformerEmbeddings(model_name='paraphrase-MiniLM-L6-v2')
 summarization_model_name = "suriya7/bart-finetuned-text-summarization"
 summarization_model = AutoModelForSeq2SeqLM.from_pretrained(summarization_model_name)
 summarization_tokenizer = AutoTokenizer.from_pretrained(summarization_model_name)
+whisper_model = whisper.load_model("tiny")
 
 
 # Function to load the vector database
@@ -238,9 +239,7 @@ def download_video_mp3(url):
 
 def audio_to_text(filename):
     
-    model = whisper.load_model("tiny")
-    result = model.transcribe(filename)
-
+    result = whisper_model.transcribe(filename)
     transcription = result["text"]
 
     return transcription
