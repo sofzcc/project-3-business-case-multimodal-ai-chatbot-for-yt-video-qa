@@ -11,7 +11,6 @@ from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferWindowMemory
 from langchain_community.vectorstores import Chroma
-import chromadb
 from langchain_core.documents import Document
 from pypdf import PdfReader
 from langchain_community.document_loaders import PyPDFLoader
@@ -19,6 +18,7 @@ from langchain.agents import initialize_agent, Tool
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
 from langchain.agents import Tool, AgentExecutor, create_react_agent, tool
 from flask import Flask, request, jsonify
+import chromadb
 import sqlite3
 import re
 import textwrap
@@ -69,7 +69,7 @@ def load_vectordb():
     Returns:
         langchain_chroma (Chroma): The Chroma vector database.
     """
-    persistent_client = chromadb.PersistentClient("chromadb")
+    persistent_client = chromadb.PersistentClient("./chromadb")
 
     langchain_chroma = Chroma(
         client=persistent_client,
@@ -225,25 +225,21 @@ def generate_valid_filename(query):
 #################################################
 import whisper
 import time
-from pytube import YouTube
+from pytubefix import YouTube
+from pytubefix.cli import on_progress
 
 
-def download_video(url):
-    video = YouTube(url)
-    stream = video.streams.filter(file_extension='mp4')
-    stream.download()
-    return stream.default_filename
+def download_video_mp3(url):
+    yt = YouTube(url, on_progress_callback = on_progress) 
+    ys = yt.streams.get_audio_only()
+    file = ys.download(mp3=True)
 
+    return file
 
-def video_to_text(filename):
-    clip = VideoFileClip(filename)
-    audio_filename = filename[:-4] + ".mp3"
-    clip.audio.write_audiofile(audio_filename)
-    clip.close()
-    time.sleep(5)
-
-    model = whisper.load_model("base")
-    result = model.transcribe(audio_filename)
+def audio_to_text(filename):
+    
+    model = whisper.load_model("tiny")
+    result = model.transcribe(filename)
 
     transcription = result["text"]
 
@@ -710,8 +706,8 @@ def process_video(url):
 #    transcript = YouTubeTranscriptApi.get_transcript(video_id)
 #    transcript_text = ' '.join([t['text'] for t in transcript])
 
-    video = download_video(url)
-    transcript_text = video_to_text(video)
+    audio_file = download_video_mp3(url)
+    transcript_text = audio_to_text(audio_file)
 
     # Clean the transcript text
     cleaned_text = clean_text(transcript_text)
@@ -922,7 +918,7 @@ def main():
                 summary = process_video(youtube_url)
                 st.write(summary)
                 st.session_state.messages.append({"role": "assistant", "content": f"I've processed the YouTube video. Here's a summary:\n\n{summary}"})
-                st.experimental_rerun()
+                st.rerun()
                 
         uploaded_pdf = st.file_uploader("Upload a PDF file", type="pdf")
         if st.button("Process PDF"):
@@ -931,7 +927,7 @@ def main():
                 pdf_summary = text_summarize(texts)
                 st.write(pdf_summary)
                 st.session_state.messages.append({"role": "assistant", "content": f"PDF processed and added to knowledge base. Here's a summary:\n\n{pdf_summary}"})
-                st.experimental_rerun()
+                st.rerun()
 
     st.header("Chat")
 
